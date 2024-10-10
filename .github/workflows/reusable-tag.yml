@@ -1,6 +1,14 @@
 name: Tag
 on:
   workflow_call:
+    inputs:
+      major:
+        type: string
+        default: main
+        description: Branch to upgrade mayor version
+      minor:
+        type: string
+        description: Branch to upgrade minor version
 
 jobs:
   tag:
@@ -9,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get Last Tag
+        id: get_tags
         run: |
           # find the highest-numbered version tag, bump the patch
           # version, and push that as a new tag.
@@ -28,9 +37,16 @@ jobs:
           
           # Find the latest tag
           GIT_TAGS=$(git tag | egrep '^[0-9]+\.[0-9]+(\.[0-9]+)?$' || true)
+
+          # Set the output
+          echo "GIT_TAGS=$GIT_TAGS"
+          echo "::set-output name=git_tags::$GIT_TAGS"
           
       - name: Upgrade Last Tag
         run: |
+          # Use the GIT_TAGS output from the previous step
+          GIT_TAGS="${{ steps.get_tags.outputs.git_tags }}"
+          
           if [ -z "$GIT_TAGS" ]; then
             LATEST="0.0.0"
           else
@@ -42,10 +58,15 @@ jobs:
             )
           fi
 
-          if [ "${{ github.ref_name }}" == "main" ]; then
-            # Bump the major version for main branch
+          if [ "${{ github.ref_name }}" == "${{ inputs.mayor }}" ]; then
+            # Bump the major version for mayor branch
             BUMPED=$(echo $LATEST | awk -F. '{ print ($1 + 1) ".0.0" }')
-          else if echo $LATEST | egrep '^[0-9]+\.[0-9]+$'; then
+          
+          elif [ "${{ github.ref_name }}" == "${{ inputs.minor }}" ]; then
+            # Bump the major version for mayor branch
+            BUMPED=$(echo $LATEST | awk -F. '{ print $1 "." ($2 + 1) ".0" }')
+          
+          elif echo $LATEST | egrep '^[0-9]+\.[0-9]+$'; then
             BUMPED="${LATEST}.0"
           else
             BUMPED=$(echo $LATEST | awk -F. '{ print $1 "." $2 "." ($3 + 1) }')
