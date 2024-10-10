@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get Last Tag
+      - name: Get Tags
         id: get_tags
         run: |
           # find the highest-numbered version tag, bump the patch
@@ -43,12 +43,13 @@ jobs:
 
           # Set the output
           echo "GIT_TAGS=$GIT_TAGS"
-          echo "::set-output name=git_tags::$GIT_TAGS"
+          echo "::set-output name=tags::$GIT_TAGS"
           
-      - name: Upgrade Last Tag
+      - name: Bumped Tag
+        id: bumped_tag
         run: |
           # Use the GIT_TAGS output from the previous step
-          GIT_TAGS="${{ steps.get_tags.outputs.git_tags }}"
+          GIT_TAGS="${{ steps.get_tags.outputs.tags }}"
           
           if [ -z "$GIT_TAGS" ]; then
             LATEST="0.0.0"
@@ -74,8 +75,17 @@ jobs:
           else
             BUMPED=$(echo $LATEST | awk -F. '{ print $1 "." $2 "." ($3 + 1) }')
           fi
-
+          
           echo "bumping ${LATEST} to ${BUMPED}"
+          
+          echo "::set-output name=bumped::$BUMPED"
+          
+      - name: Push Bumped Tag
+        run: |
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
 
+          BUMPED="${{ steps.bumped_tag.outputs.bumped }}"
+          
           git tag --annotate "$BUMPED" --message "via GitHub Actions"
           git push origin "$BUMPED"
