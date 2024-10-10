@@ -1,9 +1,5 @@
-name: Build and Test
-
 on:
-  pull_request:
-  push:
-    branches: [main, develop]
+  workflow_call:
 
 env:
   DOTNET_VERSION: '8.0.x' # The .NET SDK version to use
