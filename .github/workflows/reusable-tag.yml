@@ -1,0 +1,59 @@
+name: Tag
+
+on:
+  push:
+    branches: [main]
+
+env:
+  DOTNET_VERSION: '8.0.x' # The .NET SDK version to use
+
+jobs:
+  tag:
+    name: Tag
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Last Tag
+        run: |
+          # find the highest-numbered version tag, bump the patch
+          # version, and push that as a new tag.
+          #
+          # if the patch version was omitted, restart numbering there.
+          #
+          # example:
+          #   3.1.0 yields 3.1.1
+          #   3.2 yields 3.2.0
+          #   <no tags> yields 0.0.1
+          #   abc-1.2.9 yields abc-1.2.10
+          #
+          # if the push is to main only updates mayor version
+          
+          # Fetch the tags
+          git fetch --tags origin
+          
+          # Find the latest tag
+          GIT_TAGS=$(git tag | egrep '^[0-9]+\.[0-9]+(\.[0-9]+)?$' || true)
+          
+      - name: Upgrade Last Tag
+        run: |
+          if [ -z "$GIT_TAGS" ]; then
+            LATEST="0.0.0"
+          else
+            LATEST=$(
+              git tag --list |
+              egrep '^[0-9]+\.[0-9]+(\.[0-9]+)?$' |
+              sort -V |
+              tail -n 1
+            )
+          fi
+
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            # Bump the major version for main branch
+            BUMPED=$(echo $LATEST | awk -F. '{ print ($1 + 1) ".0.0" }')
+          else if echo $LATEST | egrep '^[0-9]+\.[0-9]+$'; then
+            BUMPED="${LATEST}.0"
+          else
+            BUMPED=$(echo $LATEST | awk -F. '{ print $1 "." $2 "." ($3 + 1) }')
+          fi
+
+          echo "bumping ${LATEST} to ${BUMPED}"
