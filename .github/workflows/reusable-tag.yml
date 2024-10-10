@@ -76,3 +76,6 @@ jobs:
           fi
 
           echo "bumping ${LATEST} to ${BUMPED}"
+
+          git tag --annotate "$BUMPED" --message "via GitHub Actions"
+          git push origin "$BUMPED"
