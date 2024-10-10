@@ -1,11 +1,6 @@
 name: Tag
-
 on:
-  push:
-    branches: [main]
-
-env:
-  DOTNET_VERSION: '8.0.x' # The .NET SDK version to use
+  workflow_call:
 
 jobs:
   tag:
