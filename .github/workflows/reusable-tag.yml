@@ -16,6 +16,9 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Get Last Tag
         id: get_tags
         run: |
