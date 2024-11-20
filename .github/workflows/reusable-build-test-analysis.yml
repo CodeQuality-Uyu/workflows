@@ -1,5 +1,15 @@
 on:
   workflow_call:
+    inputs:
+      solution-path:
+        type: string
+        description: 'The relative path to the .sln file (default: current directory)'
+        required: false
+        default: '.'
+      solution-name:
+        type: string
+        description: 'The name of the solution file (e.g., MyApp.sln)'
+        required: true
 
 env:
   DOTNET_VERSION: '8.0.x' # The .NET SDK version to use
@@ -18,10 +28,10 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install dependencies
-        run: dotnet restore
+        run: dotnet restore ${{ inputs.solution-path }}/${{ inputs.solution-name }}
 
       - name: Run build
-        run: dotnet build --configuration Release
+        run: dotnet build ${{ inputs.solution-path }}/${{ inputs.solution-name }} --configuration Release
 
   analysis:
     name: Analysis
@@ -38,14 +48,14 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Run code analysis report
-      run: dotnet format --verify-no-changes --verbosity diagnostic --report ./analysis
+      run: dotnet format ${{ inputs.solution-path }}/${{ inputs.solution-name }} --verify-no-changes --verbosity diagnostic --report ./analysis
 
     - name: Upload code analysis report
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: Code Analysis Report
-        path: ./analysis/format-report.json
+        path: ${{ inputs.solution-path }}/analysis/format-report.json
         retention-days: 1
 
   test:
@@ -64,20 +74,20 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install Dependencies
-        run: dotnet restore
+        run: dotnet restore ${{ inputs.solution-path }}/${{ inputs.solution-name }}
 
       - name: Run Build
-        run: dotnet build --configuration Release
+        run: dotnet build ${{ inputs.solution-path }}/${{ inputs.solution-name }} --configuration Release
 
       - name: Generate Results Report
-        run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFilePrefix=test-results" --results-directory ./test-results
+        run: dotnet test ${{ inputs.solution-path }}/${{ inputs.solution-name }} --configuration Release --no-build --verbosity normal --logger "trx;LogFilePrefix=test-results" --results-directory ./test-results
 
       - name: Uploaded Results Report
         uses: dorny/test-reporter@v1
         if: always()
         with:
           name: Uploaded Results Report
-          path: test-results/test-results*
+          path: ${{ inputs.solution-path }}/test-results/test-results*
           reporter: dotnet-trx
           path-replace-backslashes: false
           list-suites: all
@@ -88,12 +98,12 @@ jobs:
           only-summary: false
 
       - name: Generate Coverage Report
-        run: dotnet test --configuration Release --no-build --verbosity normal --results-directory ./coverage --settings .runsettings
+        run: dotnet test ${{ inputs.solution-path }}/${{ inputs.solution-name }} --configuration Release --no-build --verbosity normal --results-directory ./coverage --settings .runsettings
 
       - name: Join Coverage Reports
         uses: danielpalme/ReportGenerator-GitHub-Action@5.3.9
         with:
-          reports: coverage/**/coverage.cobertura.xml
+          reports: ${{ inputs.solution-path }}/coverage/**/coverage.cobertura.xml
           targetdir: coverage-report
           reporttypes: 'Html;Cobertura'
           verbosity: 'Verbose'
