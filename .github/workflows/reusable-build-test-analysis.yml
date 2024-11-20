@@ -10,6 +10,11 @@ on:
         type: string
         description: 'The name of the solution file (e.g., MyApp.sln)'
         required: true
+      report-coverage-title:
+        type: string
+        description: 'A title for the coverage report (default: Reporte de Cobertura)'
+        required: false
+        default: 'Reporte de Cobertura'
 
 env:
   DOTNET_VERSION: '8.0.x' # The .NET SDK version to use
@@ -108,6 +113,7 @@ jobs:
           reporttypes: 'Html;Cobertura'
           verbosity: 'Verbose'
           tag: '${{ github.run_number }}_${{ github.run_id }}'
+          title: '${{ inputs.report-coverage-title }}'
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
